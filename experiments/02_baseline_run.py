@@ -1,15 +1,13 @@
 from __future__ import annotations
-import os
-from pathlib import Path
-import _path_setup
+import _path_setup  # noqa: F401
 import mlflow
 import torch
+from _mlflow_setup import configure_mlflow
 from torchmlp.config import TrainConfig
 from torchmlp.data import create_surface_split_dataloaders
 from torchmlp.model import MLP
 from torchmlp.trainer import build_optimizer, evaluate, fit, resolve_criterion, resolve_device
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MLFLOW_EXPERIMENT_NAME = "torchmlp-surface"
 DEFAULT_RUN_NAME = "baseline-surface"
 
@@ -22,28 +20,18 @@ DEFAULT_BATCH_SIZE = 32
 DEFAULT_N_SAMPLES = 1000
 DEFAULT_SEED = 42
 
-# Baseline training run on the synthetic surface (Z = X² - Y² + 1.2 + noise)
+# baseline training run on the synthetic surface (Z = X² - Y² + 1.2 + noise)
 
-# Experiment: fixed seed (42), TrainConfig defaults, train/val/test metrics logged to MLflow when run inside mlflow.start_run()
+# experiment : fixed seed (42), TrainConfig defaults, train/val/test metrics logged to MLflow when run inside mlflow.start_run()
 
-# run from repo root : python experiments/02_baseline_run.py
+# run from repo root: python experiments/02_baseline_run.py
 
 # view results in the MLflow UI : mlflow ui
-# open http://127.0.0.1:5000 and select experiment "torchmlp-surface" to compare runs (params, learning curves, artifacts, registered model versions)
+# open http://127.0.0.1:5000 and select experiment "torchmlp-surface"
 
-# MLflow 3+ file store: if using the default ./mlruns backend, set MLFLOW_ALLOW_FILE_STORE=true before running the experiment or UI. Alternatively set MLFLOW_TRACKING_URI to a SQLite URI (e.g. sqlite:///mlflow.db).
+# MLflow 3+ file store: set MLFLOW_ALLOW_FILE_STORE=true before running, or use
+# MLFLOW_TRACKING_URI=sqlite:///mlflow.db
 
-
-# configure the mlflow tracking
-def configure_mlflow() -> None:
-    if uri := os.environ.get("MLFLOW_TRACKING_URI"):
-        mlflow.set_tracking_uri(uri)
-    else:
-        mlruns_path = (PROJECT_ROOT / "mlruns").as_posix()
-        mlflow.set_tracking_uri(f"file:///{mlruns_path}")
-    mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
-
-# run the baseline training
 def run_baseline(config: TrainConfig) -> tuple[dict[str, list[float]], dict[str, float]]:
     config.validate()
     torch.manual_seed(config.seed)
@@ -60,7 +48,7 @@ def run_baseline(config: TrainConfig) -> tuple[dict[str, list[float]], dict[str,
     return history, test_metrics
 
 def main() -> None:
-    configure_mlflow()
+    configure_mlflow(MLFLOW_EXPERIMENT_NAME)
 
     config = TrainConfig(
         task="regression",
@@ -96,6 +84,7 @@ def main() -> None:
     print()
     print(f"MLflow run: {run_id}  experiment: {MLFLOW_EXPERIMENT_NAME}")
     print("View results: mlflow ui  (then open http://127.0.0.1:5000)")
+
 
 if __name__ == "__main__":
     main()
