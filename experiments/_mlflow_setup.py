@@ -6,10 +6,14 @@ import mlflow
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 # configure the mlflow tracking
-def configure_mlflow(experiment_name: str) -> None:
+def configure_tracking() -> None:
     if uri := os.environ.get("MLFLOW_TRACKING_URI"):
         mlflow.set_tracking_uri(uri)
     else:
         mlruns_path = (PROJECT_ROOT / "mlruns").as_posix()
         mlflow.set_tracking_uri(f"file:///{mlruns_path}")
+
+# configure the mlflow experiment
+def configure_mlflow(experiment_name: str) -> None:
+    configure_tracking()
     mlflow.set_experiment(experiment_name)
