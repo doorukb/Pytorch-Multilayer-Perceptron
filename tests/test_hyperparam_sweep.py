@@ -1,10 +1,22 @@
 import importlib
+
 from torchmlp.config import TrainConfig
+from torchmlp.tracking import REGISTERED_MODEL_NAME
 
 sweep = importlib.import_module("03_hyperparam_sweep")
-
 def test_build_grid_size():
     assert len(sweep.build_grid()) == 18
+
+
+def test_grid_configs_skip_registry():
+    assert all(config.registered_model_name is None for config in sweep.build_grid())
+
+
+def test_winner_config_enables_registry():
+    config = sweep.build_grid()[0]
+    winner = sweep.winner_config(config)
+    assert winner.registered_model_name == REGISTERED_MODEL_NAME
+    assert config.registered_model_name is None
 
 def test_select_best_picks_lowest_val_loss():
     configs = sweep.build_grid()
