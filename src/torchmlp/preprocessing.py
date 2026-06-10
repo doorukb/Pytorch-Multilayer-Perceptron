@@ -3,7 +3,6 @@ import torch
 
 # per-column standardization fit on training features only
 # regression targets (Z) are left unscaled for MSE
-# UCI phase will add column-type-aware preprocessing (continuous vs categorical)
 class FeatureScaler:
     def __init__(self) -> None:
         self.mean: torch.Tensor | None = None
@@ -22,8 +21,7 @@ class FeatureScaler:
     def fit_transform(self, features: torch.Tensor) -> torch.Tensor:
         return self.fit(features).transform(features)
 
-# shuffle indices into disjoint train / val / test splits
-# future UCI pipeline: stratified_split_indices(labels, ...) for binary default.
+# shuffle indices into disjoint train / val / test splits (80/10/10 on synthetic surface)
 def random_split_indices(n: int, train_ratio: float = 0.8, val_ratio: float = 0.1, test_ratio: float = 0.1, *, seed: int | None = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     total = train_ratio + val_ratio + test_ratio
 
