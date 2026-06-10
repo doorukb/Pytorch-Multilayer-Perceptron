@@ -1,6 +1,7 @@
 from __future__ import annotations
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, TensorDataset
+from torchmlp.preprocessing import FeatureScaler, random_split_indices
 
 # sample points from the synthetic surface Z = X² - Y² + 1.2 + noise
 # return features (n, 2) and targets (n, 1) as float32 tensors
@@ -53,3 +54,29 @@ def create_surface_dataloaders(train_size: int = 100, test_size: int = 20, batch
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, generator=loader_gen)
     test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False)
     return train_loader, test_loader
+
+# sample surface points and split them into train, validation and test sets
+def create_surface_split_datasets(n: int = 1000, *, seed: int = 42) -> tuple[TensorDataset, TensorDataset, TensorDataset]:
+    sample_gen = _make_generator(seed)
+    features, targets = sample_surface_points(n, generator=sample_gen)
+    train_idx, val_idx, test_idx = random_split_indices(n, seed=seed)
+
+    scaler = FeatureScaler()
+    x_train = scaler.fit_transform(features[train_idx])
+    x_val = scaler.transform(features[val_idx])
+    x_test = scaler.transform(features[test_idx])
+
+    return (
+        TensorDataset(x_train, targets[train_idx]),
+        TensorDataset(x_val, targets[val_idx]),
+        TensorDataset(x_test, targets[test_idx]),
+    )
+
+
+def create_surface_split_dataloaders(n: int = 1000, batch_size: int = 32, *, seed: int = 42) -> tuple[DataLoader, DataLoader, DataLoader]:
+    train_ds, val_ds, test_ds = create_surface_split_datasets(n, seed=seed)
+    loader_gen = _make_generator(None if seed is None else seed + 2)
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, generator=loader_gen)
+    val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False)
+    return train_loader, val_loader, test_loader
