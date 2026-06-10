@@ -6,7 +6,7 @@ from torchmlp.config import TrainConfig
 from torchmlp.data import create_surface_split_dataloaders
 from torchmlp.metrics import compute_classification_metrics
 from torchmlp.model import MLP
-from torchmlp.tracking import log_metrics, log_train_config
+from torchmlp.tracking import is_mlflow_active, log_learning_curve, log_metrics, log_pytorch_model, log_train_config
 
 # resolve the device to use for the training
 def resolve_device(device: str | torch.device | None = None) -> torch.device:
@@ -127,7 +127,11 @@ def fit(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, opti
                 continue
             history_key = f"val_{key}"
             history.setdefault(history_key, []).append(value)
-    # return the history of the training
+
+    if is_mlflow_active():
+        log_learning_curve(history)
+        log_pytorch_model(model)
+
     return history
 
 # train the model
