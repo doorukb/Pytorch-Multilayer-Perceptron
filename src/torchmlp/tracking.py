@@ -64,15 +64,17 @@ def log_learning_curve(history: dict[str, list[float]], *, artifact_path: str = 
         os.rmdir(temp_dir)
 
 # log the pytorch model
-def log_pytorch_model(model: nn.Module, *, artifact_path: str = "model", registered_model_name: str | None = None) -> None:
+def log_pytorch_model(model: nn.Module, *, artifact_path: str = "model", registered_model_name: str | None = REGISTERED_MODEL_NAME) -> None:
     if not is_mlflow_active():
         return
-    if registered_model_name is None:
-        registered_model_name = REGISTERED_MODEL_NAME
 
+    # log the model on the cpu
     original_device = next(model.parameters()).device
     model.cpu()
     try:
-        mlflow.pytorch.log_model(model, artifact_path=artifact_path, registered_model_name=registered_model_name)
+        log_kwargs: dict[str, str] = {"artifact_path": artifact_path}
+        if registered_model_name is not None:
+            log_kwargs["registered_model_name"] = registered_model_name
+        mlflow.pytorch.log_model(model, **log_kwargs)
     finally:
         model.to(original_device)
