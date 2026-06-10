@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+mlruns/
+src/torchmlp/__pycache__/
+tests/__pycache__/
+experiments/__pycache__/
+.pytest_cache/
