@@ -6,6 +6,7 @@ from torchmlp.config import TrainConfig
 from torchmlp.data import create_surface_split_dataloaders
 from torchmlp.metrics import compute_classification_metrics
 from torchmlp.model import MLP
+from torchmlp.tracking import log_metrics, log_train_config
 
 # resolve the device to use for the training
 def resolve_device(device: str | torch.device | None = None) -> torch.device:
@@ -45,6 +46,7 @@ def train_one_epoch(
     device: torch.device, # the device to use for the training
     *,
     task: str = "regression",
+    step: int | None = None,
 ) -> float:
     model.train()
     total_loss = 0.0
@@ -62,11 +64,13 @@ def train_one_epoch(
         total_loss += loss.item() * batch_size
         n_samples += batch_size
 
-    return total_loss / n_samples
+    train_loss = total_loss / n_samples
+    log_metrics({"loss": train_loss}, step=step, prefix="train_")
+    return train_loss
 
 # evaluate the model on the validation set
 @torch.no_grad()
-def evaluate(model: nn.Module, loader: DataLoader, criterion: nn.Module, device: torch.device, *, task: str = "regression") -> dict[str, float]:
+def evaluate(model: nn.Module, loader: DataLoader, criterion: nn.Module, device: torch.device, *, task: str = "regression", step: int | None = None, metric_prefix: str = "val_") -> dict[str, float]:
     model.eval()
     total_loss = 0.0
     n_samples = 0
@@ -93,6 +97,7 @@ def evaluate(model: nn.Module, loader: DataLoader, criterion: nn.Module, device:
         logits = torch.cat(all_logits)
         metrics.update(compute_classification_metrics(y_true, logits))
 
+    log_metrics(metrics, step=step, prefix=metric_prefix)
     return metrics
 
 # fit the model to the data
@@ -103,19 +108,26 @@ def fit(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, opti
     if criterion is None:
         criterion = resolve_criterion(config)
 
+    log_train_config(config)
+
+    # initialize the history of the training
     history: dict[str, list[float]] = {"train_loss": [], "val_loss": []}
 
-    for _ in range(config.epochs):
-        train_loss = train_one_epoch(model, train_loader, optimizer, criterion, resolved, task=config.task)
-        val_metrics = evaluate(model, val_loader, criterion, resolved, task=config.task)
+    for epoch in range(config.epochs):
+        # train the model for one epoch
+        train_loss = train_one_epoch(model, train_loader, optimizer, criterion, resolved, task=config.task, step=epoch)
+        # evaluate the model on the validation set
+        val_metrics = evaluate(model, val_loader, criterion, resolved, task=config.task, step=epoch, metric_prefix="val_")
+        # update the history of the training
         history["train_loss"].append(train_loss)
         history["val_loss"].append(val_metrics["loss"])
+
         for key, value in val_metrics.items():
             if key == "loss":
                 continue
-
             history_key = f"val_{key}"
             history.setdefault(history_key, []).append(value)
+    # return the history of the training
     return history
 
 # train the model
