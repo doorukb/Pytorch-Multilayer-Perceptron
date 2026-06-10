@@ -21,6 +21,7 @@ class TrainConfig:
     n_samples: int = 1000
     device: str | None = None
     task: TaskName = "regression"
+    registered_model_name: str | None = "torchmlp-mlp"
 
     @property
     def layer_sizes(self) -> list[int]:
@@ -35,6 +36,8 @@ class TrainConfig:
         params["layer_sizes"] = ",".join(str(size) for size in self.layer_sizes)
         if params["device"] is None:
             params["device"] = "auto"
+        if params["registered_model_name"] is None:
+            params["registered_model_name"] = "none"
         return {key: str(value) for key, value in params.items()}
 
     def validate(self) -> None:

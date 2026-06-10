@@ -8,6 +8,7 @@ from torchmlp.config import TrainConfig
 from torchmlp.data import create_surface_dataloaders
 from torchmlp.model import MLP
 from torchmlp.tracking import (
+    REGISTERED_MODEL_NAME,
     is_mlflow_active,
     log_learning_curve,
     log_metrics,
@@ -140,3 +141,57 @@ def test_fit_logs_loadable_model(tmp_path):
     sample = torch.randn(4, config.input_dim)
     output = loaded(sample)
     assert output.shape == (4, config.output_dim)
+
+# test that the fit function registers the model version linked to the run
+def test_fit_registers_model_version_linked_to_run(tmp_path):
+    _configure_tracking(tmp_path)
+    config = _fast_config(epochs=3)
+    model, train_loader, val_loader, optimizer, criterion = _make_fit_setup(config)
+
+    with mlflow.start_run():
+        fit(model, train_loader, val_loader, optimizer, config, criterion=criterion)
+        run_id = mlflow.active_run().info.run_id
+
+    versions = MlflowClient().search_model_versions(f"name='{REGISTERED_MODEL_NAME}'")
+    matching = [version for version in versions if version.run_id == run_id]
+
+    assert len(matching) == 1
+    assert matching[0].name == REGISTERED_MODEL_NAME
+    assert matching[0].source.startswith(("runs:/", "models:/"))
+
+# test that the fit function increments the model version on the second run
+def test_fit_increments_model_version_on_second_run(tmp_path):
+    _configure_tracking(tmp_path)
+    config = _fast_config(epochs=3)
+
+    run_ids: list[str] = []
+    for _ in range(2):
+        model, train_loader, val_loader, optimizer, criterion = _make_fit_setup(config)
+        with mlflow.start_run():
+            fit(model, train_loader, val_loader, optimizer, config, criterion=criterion)
+            run_ids.append(mlflow.active_run().info.run_id)
+
+    versions = sorted(
+        MlflowClient().search_model_versions(f"name='{REGISTERED_MODEL_NAME}'"),
+        key=lambda version: int(version.version),
+    )
+
+    assert [int(version.version) for version in versions] == [1, 2]
+    assert versions[0].run_id == run_ids[0]
+    assert versions[1].run_id == run_ids[1]
+
+# test that the fit function skips the registry if the registered model name is None
+def test_registered_model_name_none_skips_registry(tmp_path):
+    _configure_tracking(tmp_path)
+    config = _fast_config(epochs=3, registered_model_name=None)
+    model, train_loader, val_loader, optimizer, criterion = _make_fit_setup(config)
+
+    with mlflow.start_run():
+        fit(model, train_loader, val_loader, optimizer, config, criterion=criterion)
+        run_id = mlflow.active_run().info.run_id
+
+    versions = MlflowClient().search_model_versions(f"name='{REGISTERED_MODEL_NAME}'")
+    assert versions == []
+
+    loaded = mlflow.pytorch.load_model(f"runs:/{run_id}/model")
+    assert isinstance(loaded, nn.Module)

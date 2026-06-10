@@ -130,7 +130,7 @@ def fit(model: nn.Module, train_loader: DataLoader, val_loader: DataLoader, opti
 
     if is_mlflow_active():
         log_learning_curve(history)
-        log_pytorch_model(model)
+        log_pytorch_model(model, registered_model_name=config.registered_model_name)
 
     return history
 

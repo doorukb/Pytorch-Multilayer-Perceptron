@@ -17,6 +17,7 @@ from torchmlp.model import ActivationName, MLP
 from torchmlp.parity import compare_numpy_torch_grads, get_activation_map, load_numpy_weights
 from torchmlp.preprocessing import FeatureScaler, random_split_indices
 from torchmlp.tracking import (
+    REGISTERED_MODEL_NAME,
     is_mlflow_active,
     log_learning_curve,
     log_metrics,
@@ -60,6 +61,7 @@ __all__ = [
     "log_pytorch_model",
     "log_train_config",
     "save_learning_curve",
+    "REGISTERED_MODEL_NAME",
     "random_split_indices",
     "resolve_criterion",
     "resolve_device",

@@ -11,6 +11,8 @@ from torchmlp.config import TrainConfig
 
 matplotlib.use("Agg")
 
+REGISTERED_MODEL_NAME = "torchmlp-mlp"
+
 # check if the mlflow is active
 def is_mlflow_active() -> bool:
     return mlflow.active_run() is not None
@@ -62,13 +64,15 @@ def log_learning_curve(history: dict[str, list[float]], *, artifact_path: str = 
         os.rmdir(temp_dir)
 
 # log the pytorch model
-def log_pytorch_model(model: nn.Module, *, artifact_path: str = "model") -> None:
+def log_pytorch_model(model: nn.Module, *, artifact_path: str = "model", registered_model_name: str | None = None) -> None:
     if not is_mlflow_active():
         return
+    if registered_model_name is None:
+        registered_model_name = REGISTERED_MODEL_NAME
 
     original_device = next(model.parameters()).device
     model.cpu()
     try:
-        mlflow.pytorch.log_model(model, artifact_path=artifact_path)
+        mlflow.pytorch.log_model(model, artifact_path=artifact_path, registered_model_name=registered_model_name)
     finally:
         model.to(original_device)
