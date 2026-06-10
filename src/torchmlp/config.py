@@ -1,14 +1,11 @@
 from __future__ import annotations
-
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
-
 from torchmlp.model import ActivationName
-
 OptimizerName = Literal["sgd", "adam"]
 TaskName = Literal["regression", "classification"]
 
-
+# the configuration for the training of the model
 @dataclass
 class TrainConfig:
     learning_rate: float = 1e-3
@@ -24,6 +21,7 @@ class TrainConfig:
     n_samples: int = 1000
     device: str | None = None
     task: TaskName = "regression"
+    registered_model_name: str | None = "torchmlp-mlp"
 
     @property
     def layer_sizes(self) -> list[int]:
@@ -31,6 +29,16 @@ class TrainConfig:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+    def to_mlflow_params(self) -> dict[str, str]:
+        params = self.to_dict()
+        params["hidden_sizes"] = ",".join(str(size) for size in params["hidden_sizes"])
+        params["layer_sizes"] = ",".join(str(size) for size in self.layer_sizes)
+        if params["device"] is None:
+            params["device"] = "auto"
+        if params["registered_model_name"] is None:
+            params["registered_model_name"] = "none"
+        return {key: str(value) for key, value in params.items()}
 
     def validate(self) -> None:
         if not 0.0 <= self.dropout < 1.0:
