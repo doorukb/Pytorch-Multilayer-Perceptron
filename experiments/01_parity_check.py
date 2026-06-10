@@ -2,6 +2,7 @@ from __future__ import annotations
 import sys
 from typing import Any
 import _path_setup  # noqa: F401
+from _path_setup import resolve_numpy_mlp_src
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,6 +15,9 @@ from torchmlp.parity import compare_numpy_torch_grads, get_activation_map, load_
 DEFAULT_ARCH = [2, 4, 1]
 DEFAULT_SEED = 42
 DEFAULT_ATOL = 1e-4
+
+# resolve the path to the NumPy MLP reference src/ directory
+resolve_numpy_mlp_src()
 
 # gradient parity: PyTorch autograd vs NumPy backprop on one backward p
 # returns a tuple of a boolean indicating whether the parity check passed and a list of dictionaries containing the results
