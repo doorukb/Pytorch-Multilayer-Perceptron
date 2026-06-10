@@ -3,6 +3,8 @@ import torch
 from torch.utils.data import DataLoader, Dataset, TensorDataset
 from torchmlp.preprocessing import FeatureScaler, random_split_indices
 
+SURFACE_CLASS_THRESHOLD = 1.2
+
 # sample points from the synthetic surface Z = X² - Y² + 1.2 + noise
 # return features (n, 2) and targets (n, 1) as float32 tensors
 def sample_surface_points(n: int, *, generator: torch.Generator | None = None) -> tuple[torch.Tensor, torch.Tensor]:
@@ -72,8 +74,36 @@ def create_surface_split_datasets(n: int = 1000, *, seed: int = 42) -> tuple[Ten
         TensorDataset(x_test, targets[test_idx]),
     )
 
+# same surface split as regression, but targets are binary class labels (Z > threshold)
 def create_surface_split_dataloaders(n: int = 1000, batch_size: int = 32, *, seed: int = 42) -> tuple[DataLoader, DataLoader, DataLoader]:
     train_ds, val_ds, test_ds = create_surface_split_datasets(n, seed=seed)
+    loader_gen = _make_generator(None if seed is None else seed + 2)
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, generator=loader_gen)
+    val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False)
+    return train_loader, val_loader, test_loader
+
+# same surface split as regression, but targets are binary class labels (Z > threshold)
+def create_surface_classification_split_datasets(n: int = 1000, *, seed: int = 42, threshold: float = SURFACE_CLASS_THRESHOLD) -> tuple[TensorDataset, TensorDataset, TensorDataset]:
+    sample_gen = _make_generator(seed)
+    features, targets = sample_surface_points(n, generator=sample_gen)
+    labels = (targets.squeeze(1) > threshold).long()
+    train_idx, val_idx, test_idx = random_split_indices(n, seed=seed)
+
+    scaler = FeatureScaler()
+    x_train = scaler.fit_transform(features[train_idx])
+    x_val = scaler.transform(features[val_idx])
+    x_test = scaler.transform(features[test_idx])
+
+    return (
+        TensorDataset(x_train, labels[train_idx]),
+        TensorDataset(x_val, labels[val_idx]),
+        TensorDataset(x_test, labels[test_idx]),
+    )
+
+# same surface split as classification, but targets are binary class labels (Z > threshold)
+def create_surface_classification_split_dataloaders(n: int = 1000, batch_size: int = 32, *, seed: int = 42, threshold: float = SURFACE_CLASS_THRESHOLD) -> tuple[DataLoader, DataLoader, DataLoader]:
+    train_ds, val_ds, test_ds = create_surface_classification_split_datasets(n, seed=seed, threshold=threshold)
     loader_gen = _make_generator(None if seed is None else seed + 2)
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, generator=loader_gen)
     val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False)

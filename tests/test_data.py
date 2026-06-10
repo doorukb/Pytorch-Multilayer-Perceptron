@@ -1,6 +1,9 @@
 import torch
 from torchmlp.data import (
+    SURFACE_CLASS_THRESHOLD,
     SurfaceDataset,
+    create_surface_classification_split_dataloaders,
+    create_surface_classification_split_datasets,
     create_surface_dataloaders,
     create_surface_datasets,
     create_surface_split_dataloaders,
@@ -71,6 +74,29 @@ def test_create_surface_split_dataloaders_batch():
     features, targets = next(iter(train_loader))
     assert features.shape[1] == 2
     assert targets.shape[1] == 1
+    assert features.shape[0] <= 32
+
+def test_classification_split_labels_are_binary():
+    train, val, test = create_surface_classification_split_datasets(n=1000, seed=42)
+    for dataset in (train, val, test):
+        _, label = dataset[0]
+        assert label.dtype == torch.long
+        assert label.item() in (0, 1)
+
+def test_classification_split_matches_regression_features():
+    reg_train, _, _ = create_surface_split_datasets(n=1000, seed=42)
+    cls_train, _, _ = create_surface_classification_split_datasets(n=1000, seed=42, threshold=SURFACE_CLASS_THRESHOLD)
+    reg_features, reg_targets = reg_train[:]
+    cls_features, cls_labels = cls_train[:]
+    assert torch.equal(reg_features, cls_features)
+    expected = (reg_targets.squeeze(1) > SURFACE_CLASS_THRESHOLD).long()
+    assert torch.equal(cls_labels, expected)
+
+def test_classification_split_dataloaders_batch():
+    train_loader, _, _ = create_surface_classification_split_dataloaders(n=1000, batch_size=32, seed=42)
+    features, labels = next(iter(train_loader))
+    assert features.shape[1] == 2
+    assert labels.ndim == 1
     assert features.shape[0] <= 32
 
 def test_split_dataloaders_reproducible():

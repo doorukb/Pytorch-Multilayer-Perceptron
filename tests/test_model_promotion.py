@@ -17,13 +17,13 @@ def test_load_registered_model_round_trip(tmp_path, monkeypatch):
     monkeypatch.setenv("MLFLOW_TRACKING_URI", f"sqlite:///{db_path}")
     mlflow.set_experiment("test-promotion")
 
-    model = MLP([2, 5, 1])
+    model = MLP([2, 5, 2])
     with mlflow.start_run():
         log_pytorch_model(model, registered_model_name=REGISTERED_MODEL_NAME)
 
     loaded = promotion.load_registered_model("1")
     output = loaded(torch.randn(4, 2))
-    assert output.shape == (4, 1)
+    assert output.shape == (4, 2)
 
 def test_resolve_model_version_latest_requires_registry(tmp_path, monkeypatch):
     db_path = (tmp_path / "mlflow.db").as_posix()

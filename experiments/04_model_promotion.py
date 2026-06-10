@@ -4,9 +4,10 @@ import _path_setup
 import mlflow
 import mlflow.pytorch
 import torch.nn as nn
+from torch.nn import CrossEntropyLoss
 from _mlflow_setup import configure_tracking
 from mlflow.tracking import MlflowClient
-from torchmlp.data import create_surface_split_dataloaders
+from torchmlp.data import create_surface_classification_split_dataloaders
 from torchmlp.tracking import REGISTERED_MODEL_NAME
 from torchmlp.trainer import evaluate, resolve_device
 
@@ -23,7 +24,7 @@ DEFAULT_MODEL_VERSION = "latest"
 # it loads the model by registry URI : models:/torchmlp-mlp/{version} not by local path or runs
 
 # test split matches training : BASE_SEED=42, n_samples=1000, batch_size=32
-# headline metric : test MSE (regression)
+# headline metrics : test AUC and F1 (classification on surface labels Z > 1.2)
 
 # override the registry version with MLFLOW_MODEL_VERSION (default: latest)
 
@@ -52,11 +53,11 @@ def load_registered_model(version: str = DEFAULT_MODEL_VERSION) -> nn.Module:
     return mlflow.pytorch.load_model(uri)
 
 def evaluate_registered_model(model: nn.Module, *, seed: int = BASE_SEED) -> dict[str, float]:
-    _, _, test_loader = create_surface_split_dataloaders(n=DEFAULT_N_SAMPLES, batch_size=DEFAULT_BATCH_SIZE, seed=seed)
+    _, _, test_loader = create_surface_classification_split_dataloaders(n=DEFAULT_N_SAMPLES, batch_size=DEFAULT_BATCH_SIZE, seed=seed)
     device = resolve_device(None)
     model.to(device)
-    criterion = nn.MSELoss()
-    return evaluate(model, test_loader, criterion, device, task="regression")
+    criterion = CrossEntropyLoss()
+    return evaluate(model, test_loader, criterion, device, task="classification")
 
 def main() -> None:
     version = os.environ.get("MLFLOW_MODEL_VERSION", DEFAULT_MODEL_VERSION)
@@ -76,9 +77,11 @@ def main() -> None:
 
     model = mlflow.pytorch.load_model(uri)
     test_metrics = evaluate_registered_model(model)
-    test_loss = test_metrics["loss"]
+    test_auc = test_metrics["auc"]
+    test_f1 = test_metrics["f1"]
 
-    print(f"Test loss (MSE): {test_loss:.6f}")
+    print(f"Test AUC: {test_auc:.4f}")
+    print(f"Test F1:  {test_f1:.4f}")
     print()
     print("Model loaded from MLflow Model Registry (not retrained from scratch).")
 
