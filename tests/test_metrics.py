@@ -32,3 +32,19 @@ def test_compute_classification_metrics_keys():
     assert set(metrics) == {"accuracy", "f1", "auc"}
     assert metrics["accuracy"] == 1.0
     assert metrics["f1"] == 1.0
+
+def test_metrics_accept_torch_tensors():
+    y_true = torch.tensor([0, 1, 0, 1])
+    y_pred = torch.tensor([0, 1, 0, 1])
+    y_scores = torch.tensor([0.1, 0.9, 0.2, 0.8])
+
+    acc = accuracy(y_true, y_pred)
+    f1 = f1_score(y_true, y_pred)
+    auc = binary_auc(y_true, y_scores)
+
+    assert isinstance(acc, float)
+    assert isinstance(f1, float)
+    assert isinstance(auc, float)
+    assert acc == 1.0
+    assert f1 == 1.0
+    assert auc == 1.0

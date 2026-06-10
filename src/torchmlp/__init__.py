@@ -7,7 +7,12 @@ from torchmlp.data import (
     create_surface_split_datasets,
     sample_surface_points,
 )
-from torchmlp.metrics import compute_classification_metrics
+from torchmlp.metrics import (
+    accuracy,
+    binary_auc,
+    compute_classification_metrics,
+    f1_score,
+)
 from torchmlp.model import ActivationName, MLP
 from torchmlp.parity import compare_numpy_torch_grads, get_activation_map, load_numpy_weights
 from torchmlp.preprocessing import FeatureScaler, random_split_indices
@@ -28,8 +33,11 @@ __all__ = [
     "SurfaceDataset",
     "TrainConfig",
     "build_optimizer",
+    "accuracy",
+    "binary_auc",
     "compare_numpy_torch_grads",
     "compute_classification_metrics",
+    "f1_score",
     "create_surface_dataloaders",
     "create_surface_datasets",
     "create_surface_split_dataloaders",
