@@ -41,6 +41,8 @@ class MLP(nn.Module):
         for i, linear in enumerate(self.linears):
             _init_linear_xavier(linear, fan_in=sizes[i])
 
+    # return logits
+    # use predict_proba at inference for class probabilities
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         for i, linear in enumerate(self.linears):
             x = linear(x)
@@ -50,3 +52,7 @@ class MLP(nn.Module):
                 if self.dropout is not None:
                     x = self.dropout(x)
         return x
+
+    # softmax probabilities from logits (not used during CrossEntropy training)
+    def predict_proba(self, logits: torch.Tensor) -> torch.Tensor:
+        return torch.softmax(logits, dim=-1)

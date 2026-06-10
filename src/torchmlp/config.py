@@ -1,10 +1,14 @@
 from __future__ import annotations
+
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
-from torchmlp.model import ActivationName
-OptimizerName = Literal["sgd", "adam"]
 
-# the configuration for the training of the model
+from torchmlp.model import ActivationName
+
+OptimizerName = Literal["sgd", "adam"]
+TaskName = Literal["regression", "classification"]
+
+
 @dataclass
 class TrainConfig:
     learning_rate: float = 1e-3
@@ -19,6 +23,7 @@ class TrainConfig:
     seed: int = 42
     n_samples: int = 1000
     device: str | None = None
+    task: TaskName = "regression"
 
     @property
     def layer_sizes(self) -> list[int]:
@@ -38,3 +43,5 @@ class TrainConfig:
             raise ValueError("n_samples must be at least 1")
         if not self.hidden_sizes:
             raise ValueError("hidden_sizes must not be empty")
+        if self.task == "classification" and self.output_dim < 2:
+            raise ValueError("classification requires output_dim >= 2")

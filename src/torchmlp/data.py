@@ -72,7 +72,6 @@ def create_surface_split_datasets(n: int = 1000, *, seed: int = 42) -> tuple[Ten
         TensorDataset(x_test, targets[test_idx]),
     )
 
-
 def create_surface_split_dataloaders(n: int = 1000, batch_size: int = 32, *, seed: int = 42) -> tuple[DataLoader, DataLoader, DataLoader]:
     train_ds, val_ds, test_ds = create_surface_split_datasets(n, seed=seed)
     loader_gen = _make_generator(None if seed is None else seed + 2)

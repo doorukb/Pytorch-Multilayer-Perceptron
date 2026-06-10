@@ -17,3 +17,7 @@ def test_to_dict_serializable():
 def test_validate_rejects_invalid_dropout():
     with pytest.raises(ValueError, match="dropout must be"):
         TrainConfig(dropout=1.5).validate()
+
+def test_validate_classification_requires_two_outputs():
+    with pytest.raises(ValueError, match="output_dim"):
+        TrainConfig(task="classification", output_dim=1).validate()
