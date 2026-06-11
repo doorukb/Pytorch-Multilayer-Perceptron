@@ -40,6 +40,14 @@ Baseline tracked run (experiment 02, regression MSE, architecture [2, 5, 1], lr=
 
 Run locally: `python experiments/02_baseline_run.py`
 
+Adam vs SGD comparison (experiment 05, regression MSE, architecture [2, 10, 1], 200 epochs, seed 42):
+
+    method   optimizer  lr         epochs   final_train_mse    final_val_mse    test_mse
+    SGD      sgd        0.05       200      0.255236           0.298774         0.210453
+    Adam     adam       0.001      200      0.321722           0.364761         0.251560
+
+Run locally: `python experiments/05_adam_comparison.py`
+
 Hyperparameter sweep (experiment 03, 3 architectures x 3 learning rates x 2 dropout values, 20 epochs, seed 42):
 
 Data split: 800 train, 100 validation, 100 test (from n=1000). Labels: Z > 1.2. The test set was not accessed until after the best configuration was selected by highest validation AUC.
@@ -73,7 +81,7 @@ Selected configuration (highest validation AUC):
     test AUC:      0.5147
     test F1:       0.6560
 
-The two-layer hidden network [2, 5, 5, 2] at lr=0.01 edges out shallower architectures on validation AUC. AUC values cluster near 0.5 on this noisy binarized surface, which is expected when the label boundary cuts through high-variance regions of Z.
+The near-random AUC is expected given the classification setup: the decision boundary for Z > 1.2 on this surface is |X| ≈ |Y|, a nonlinear curve that a small network with 20 SGD epochs cannot reliably fit through high-variance noise. The purpose of this experiment is to demonstrate MLflow's tracking infrastructure — systematic logging, run comparison, registry, and promotion — on a reproducible grid. The Adam vs SGD comparison in experiment 05 shows meaningful regression results on the same surface.
 
 Run locally: `python experiments/03_hyperparam_sweep.py`
 
@@ -87,14 +95,31 @@ Loads the sweep winner from the MLflow Model Registry at `models:/torchmlp-mlp/{
 
 Run locally: `python experiments/04_model_promotion.py`
 
+## Comparison Conclusions
+
+Same synthetic surface, same seed, same architecture [2, 10, 1].
+
+    method           framework    optimizer       epochs    test_mse
+    NumPy MLP        NumPy        full-batch SGD  2000      0.2536
+    PyTorch MLP      PyTorch      SGD             200       0.210453
+    PyTorch MLP      PyTorch      Adam            200       0.251560
+
+NumPy full-batch SGD requires 2000 gradient steps across the full dataset to approach the noise floor. PyTorch with Adam reaches comparable quality in 200 mini-batch epochs.
+
+The implementation difference: Adam required tracking first and second gradient moments from scratch in the NumPy project, here it is torch.optim.Adam, one line, no derivation.
+
+The framework gives you the optimizer family for free thefrom-scratch project proves you know what it is computing.
+
 ## View in MLflow
 
 From the repo root:
 
-    $env:MLFLOW_ALLOW_FILE_STORE = "true"
+    Windows PowerShell:  $env:MLFLOW_ALLOW_FILE_STORE = "true"
+    Linux / macOS:       export MLFLOW_ALLOW_FILE_STORE=true
     python experiments/02_baseline_run.py
     python experiments/03_hyperparam_sweep.py
     python experiments/04_model_promotion.py
+    python experiments/05_adam_comparison.py
     mlflow ui
 
 Open http://127.0.0.1:5000 in a browser.
@@ -103,12 +128,14 @@ Experiments:
 
     torchmlp-surface           baseline regression run (experiment 02)
     torchmlp-hyperparam-sweep  18 grid trials plus sweep-winner run (experiment 03)
+    torchmlp-sgd-vs-adam       SGD vs Adam comparison (experiment 05)
 
 Model Registry tab: registered model name `torchmlp-mlp`. Each sweep-winner retrain creates a new version.
 
 Optional: pin a specific registry version before promotion:
 
-    $env:MLFLOW_MODEL_VERSION = "2"
+    Windows PowerShell:  $env:MLFLOW_MODEL_VERSION = "2"
+    Linux / macOS:       export MLFLOW_MODEL_VERSION=2
     python experiments/04_model_promotion.py
 
 MLflow 3+ blocks the default file store unless you set `MLFLOW_ALLOW_FILE_STORE=true` or point tracking at SQLite, for example `MLFLOW_TRACKING_URI=sqlite:///mlflow.db`.
@@ -152,3 +179,14 @@ Per-run artifacts include hyperparameters, per-epoch train/val metrics, a learni
 To run all tests from the project root:
 
     pytest tests/ -v
+
+- `tests/test_config.py` — `TrainConfig` layer sizes, validation rules, and MLflow param serialization
+- `tests/test_data.py` — surface sampling, dataset sizes, binary classification labels, reproducible splits
+- `tests/test_metrics.py` — accuracy, F1, and AUC helpers for classification evaluation
+- `tests/test_model.py` — MLP layer shapes, Xavier initialization, activations, output-layer linearity
+- `tests/test_preprocessing.py` — train/test split ratios and feature scaler fit without data leakage
+- `tests/test_parity.py` — gradient parity against the NumPy reference; skips gracefully if the `Multilayer-Perceptron` sibling repo is not cloned and `NUMPY_MLP_SRC` is unset
+- `tests/test_trainer.py` — `fit`/`train` loss reduction, eval/train modes, classification training path; `test_zero_grad_prevents_accumulation` demonstrates that gradients double without `zero_grad()` and reset correctly when it is called
+- `tests/test_tracking.py` — MLflow logging helpers and `fit` integration; uses SQLite per-test via `tmp_path` so runs never pollute the repo `mlruns/` directory
+- `tests/test_hyperparam_sweep.py` — grid size (18 configs), classification task settings, winner selection by validation AUC
+- `tests/test_model_promotion.py` — registry URI scheme, version resolution, and registered-model load round-trip

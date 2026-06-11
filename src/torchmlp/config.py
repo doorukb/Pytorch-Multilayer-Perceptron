@@ -21,7 +21,7 @@ class TrainConfig:
     n_samples: int = 1000
     device: str | None = None
     task: TaskName = "regression"
-    registered_model_name: str | None = "torchmlp-mlp"
+    registered_model_name: str | None = None
 
     @property
     def layer_sizes(self) -> list[int]:

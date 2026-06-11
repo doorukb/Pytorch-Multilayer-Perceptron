@@ -145,7 +145,7 @@ def test_fit_logs_loadable_model(tmp_path):
 # test that the fit function registers the model version linked to the run
 def test_fit_registers_model_version_linked_to_run(tmp_path):
     _configure_tracking(tmp_path)
-    config = _fast_config(epochs=3)
+    config = _fast_config(epochs=3, registered_model_name=REGISTERED_MODEL_NAME)
     model, train_loader, val_loader, optimizer, criterion = _make_fit_setup(config)
 
     with mlflow.start_run():
@@ -162,7 +162,7 @@ def test_fit_registers_model_version_linked_to_run(tmp_path):
 # test that the fit function increments the model version on the second run
 def test_fit_increments_model_version_on_second_run(tmp_path):
     _configure_tracking(tmp_path)
-    config = _fast_config(epochs=3)
+    config = _fast_config(epochs=3, registered_model_name=REGISTERED_MODEL_NAME)
 
     run_ids: list[str] = []
     for _ in range(2):
