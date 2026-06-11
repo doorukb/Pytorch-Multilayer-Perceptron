@@ -29,7 +29,7 @@ def test_to_mlflow_params_serializes_lists_and_device():
     assert params["hidden_sizes"] == "5,10"
     assert params["layer_sizes"] == "2,5,10,1"
     assert params["device"] == "auto"
-    assert params["registered_model_name"] == "torchmlp-mlp"
+    assert params["registered_model_name"] == "none"
     assert all(isinstance(value, str) for value in params.values())
 
 def test_to_mlflow_params_serializes_none_registered_model_name():

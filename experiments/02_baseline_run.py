@@ -62,6 +62,7 @@ def main() -> None:
         batch_size=DEFAULT_BATCH_SIZE,
         n_samples=DEFAULT_N_SAMPLES,
         seed=DEFAULT_SEED,
+        registered_model_name=None,
     )
 
     print("Baseline run — synthetic surface (Z = X² - Y² + 1.2 + noise)")
