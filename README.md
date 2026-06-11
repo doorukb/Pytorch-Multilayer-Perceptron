@@ -81,7 +81,7 @@ Selected configuration (highest validation AUC):
     test AUC:      0.5147
     test F1:       0.6560
 
-The two-layer hidden network [2, 5, 5, 2] at lr=0.01 edges out shallower architectures on validation AUC. AUC values cluster near 0.5 on this noisy binarized surface, which is expected when the label boundary cuts through high-variance regions of Z.
+The near-random AUC is expected given the classification setup: the decision boundary for Z > 1.2 on this surface is |X| ≈ |Y|, a nonlinear curve that a small network with 20 SGD epochs cannot reliably fit through high-variance noise. The purpose of this experiment is to demonstrate MLflow's tracking infrastructure — systematic logging, run comparison, registry, and promotion — on a reproducible grid. The Adam vs SGD comparison in experiment 05 shows meaningful regression results on the same surface.
 
 Run locally: `python experiments/03_hyperparam_sweep.py`
 
