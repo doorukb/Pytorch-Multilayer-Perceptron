@@ -104,12 +104,13 @@ Same synthetic surface, same seed, same architecture [2, 10, 1].
     PyTorch MLP      PyTorch      SGD             200       0.210453
     PyTorch MLP      PyTorch      Adam            200       0.251560
 
+Both PyTorch variants match or beat the NumPy result in 200 mini-batch epochs, which is a fraction of the 2000 full-batch iterations NumPy required. PyTorch SGD leads here because lr=0.05 is well-suited to this surface; Adam's advantage is reduced learning rate sensitivity, which shows more clearly on complex tasks where tuning is expensive. The implementation point stands: Adam in NumPy requires tracking first and second moment estimates from scratch; here it is torch.optim.Adam, one line.
+
 NumPy full-batch SGD requires 2000 gradient steps across the full dataset to approach the noise floor. PyTorch with Adam reaches comparable quality in 200 mini-batch epochs.
 
 The implementation difference: Adam required tracking first and second gradient moments from scratch in the NumPy project, here it is torch.optim.Adam, one line, no derivation.
 
-The framework gives you the optimizer family for free thefrom-scratch project proves you know what it is computing.
-
+The framework gives you the optimizer family for free; the from-scratch project proves you know what it is computing.
 ## View in MLflow
 
 From the repo root:
